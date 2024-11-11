@@ -12,8 +12,8 @@ from mysql.connector import errorcode
 db_config = {
     'host': 'localhost',
     'user': 'root',
-    'password': 'xyz',
-    'database': 'test_data'
+    'password': 'Rosas05!',
+    'database': 'ParkingLot'
 }
 
 # Nombre de la tabla
