@@ -1,7 +1,7 @@
 #include <ESP8266WiFi.h>
 #include <PubSubClient.h>
 
-#include "config.h"  // Sustituir con datos de vuestra red
+#include "config.h"
 #include "MQTT.hpp"
 #include "ESP8266_Utils.hpp"
 #include "ESP8266_Utils_MQTT.hpp"
@@ -11,6 +11,7 @@
 #define gLED D6
 #define yLED D5
 #define rLED D4
+long prevDistance;
 
 
 void setup(void){
@@ -52,8 +53,11 @@ void loop(){
   digitalWrite(rLED, red);
   digitalWrite(yLED, yellow);
   digitalWrite(gLED, green);
+  if (distance != prevDistance){
+    PublisMqtt(distance);
+  }
   //--------------------------------------------------------------------------------------
-	PublisMqtt(distance);
+	prevDistance = distance;
 	delay(1000);
 }
 
