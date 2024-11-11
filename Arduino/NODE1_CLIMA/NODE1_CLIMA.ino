@@ -1,20 +1,23 @@
 #include <ESP8266WiFi.h>
 #include <PubSubClient.h>
 
-#include "config.h"  // Sustituir con datos de vuestra red
+#include "config.h"
 #include "MQTT.hpp"
 #include "ESP8266_Utils.hpp"
 #include "ESP8266_Utils_MQTT.hpp"
+#include "DHT.h"
 
-#define PhotoR A0
-#define LED D1
-int valorLDR = 0;
-int umbralNum = 1000;
+#define DHTPIN D7
+#define DHTTYPE DHT11
+#define fanPin D8
+
+DHT dht(DHTPIN, DHTTYPE);
 
 
 void setup(void){
 	Serial.begin(9600);
-  pinMode(LED, OUTPUT);
+  dht.begin();
+  pinMode(fanPin, OUTPUT);
 	SPIFFS.begin();
 	ConnectWiFi_STA(false);
 	InitMqtt();
@@ -24,13 +27,26 @@ void setup(void){
 void loop(){
 	HandleMqtt();
   //--------------------------------------------------------------------------------------
-  if (valorLDR = analogRead(PhotoR) >= umbralNum){
-    digitalWrite(LED, HIGH);
-  } else {
-    digitalWrite(LED, LOW);
+  float humidity = dht.readHumidity();
+  float temperature = dht.readTemperature();
+  if (isnan(humidity) || isnan(temperature)){
+    Serial.println("Failed to read from DHT sensor!");
+    delay(1000);
+    return;
+  } 
+  int fan = 0;
+  if (temperature >= 30){
+    fan = 1;
   }
+  digitalWrite(fanPin, fan);
+  Serial.print("Humedad: ");
+  Serial.print(humidity);
+  Serial.print(" %\t");
+  Serial.print("Temperatura: ");
+  Serial.print(temperature);
+  Serial.println(" °C\t");
   //--------------------------------------------------------------------------------------
-	PublisMqtt(valorLDR);
+	PublisMqtt(temperature);
 	delay(1000);
 }
 

@@ -111,4 +111,4 @@ try:
     t2.join()
     
 except Exception:
-    print("Se detectó una excepción, algo salió mal...")
+    print("Se detecto una excepción, algo salio mal...")
