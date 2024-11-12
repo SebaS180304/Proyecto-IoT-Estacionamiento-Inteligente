@@ -8,17 +8,52 @@ import signal
 import mysql.connector
 from mysql.connector import errorcode
 
-# Configuración de la base de datos
-db_config = {
-    'host': 'localhost',
-    'user': 'root',
-    'password': 'Rosas05!',
-    'database': 'ParkingLot'
-}
+# Replace these variables with your MySQL server's credentials
+host = "Localhost"
+user = "root"
+password = "A01612974"
 
-# Nombre de la tabla
-table_name = "test_datatable"
+# Database and table names
+database_name = "ParkingLot"
+table_name = "estacionamiento"
 
+# Setup the MySQL database and table
+try:
+    cnx = mysql.connector.connect(
+        host=host,
+        user=user,
+        password=password
+    )
+    cursor = cnx.cursor()
+
+    # Create the database if it doesn't exist
+    try:
+        cursor.execute(f"CREATE DATABASE {database_name}")
+        print(f"Database '{database_name}' created successfully.")
+    except mysql.connector.Error as err:
+        if err.errno == errorcode.ER_DB_CREATE_EXISTS:
+            print(f"Database '{database_name}' already exists.")
+        else:
+            print(err.msg)
+
+    # Connect to the newly created or existing database
+    cnx.database = database_name
+
+    # Create the table if it doesn't exist
+    table_creation_query = (
+        f"CREATE TABLE IF NOT EXISTS {table_name} ("
+        "id INT AUTO_INCREMENT PRIMARY KEY, "
+        "value INT NOT NULL)"
+    )
+    cursor.execute(table_creation_query)
+    print(f"Table '{table_name}' is ready.")
+
+except mysql.connector.Error as err:
+    print(f"Error: {err}")
+finally:
+    cursor.close()
+    cnx.close()
+    
 client1 = paho.Client()
 client2 = paho.Client()
 
@@ -27,21 +62,25 @@ data2 = None
 
 apprun = True
 
-# Función para conectar a la base de datos e insertar datos
 def insert_into_db(data):
     try:
-        # Conectarse a la base de datos MySQL
-        cnx = mysql.connector.connect(**db_config)
+        # Connect to the MySQL server
+        cnx = mysql.connector.connect(
+            host=host,
+            user=user,
+            password=password,
+            database=database_name
+        )
         cursor = cnx.cursor()
 
-        # Insertar el payload recibido en la tabla
-        insertion_query = f"INSERT INTO {table_name} (value) VALUES (%s)"
-        cursor.execute(insertion_query, (data,))
+        # Insert the received payload into the table
+        insertion_query = f"INSERT INTO {table_name} (Temperatura) VALUES ({data})"
+        cursor.execute(insertion_query)
         cnx.commit()
-        print(f"Valor {data} insertado en la tabla '{table_name}'.")
+        print(f"Inserted value {data} into table '{table_name}'.")
 
     except mysql.connector.Error as err:
-        print(f"Error de base de datos: {err}")
+        print(f"Database Error: {err}")
     finally:
         cursor.close()
         cnx.close()
@@ -50,11 +89,13 @@ def message_handling_1(client, userdata, msg):
     global data1
     data1 = msg.payload.decode()
     insert_into_db(data1)
+    #print(f"{msg.topic}: {data1}")
 
 def message_handling_2(client, userdata, msg):
     global data2
     data2 = msg.payload.decode()
     insert_into_db(data2)
+    #print(f"{msg.topic}: {data2}")
 
 def loop_1(num):
     global client1
@@ -63,6 +104,9 @@ def loop_1(num):
 def loop_2(num):
     global client2
     client2.loop_forever()
+        
+client1.on_message = message_handling_1
+client2.on_message = message_handling_2
 
 def signal_handler(sig, frame):
     global client1
@@ -76,39 +120,40 @@ def signal_handler(sig, frame):
 signal.signal(signal.SIGINT, signal_handler)
 
 if client1.connect("localhost", 1883, 60) != 0:
-    print("No se pudo conectar al broker MQTT")
+    print("Couldn't connect to the mqtt broker")
     exit(1)
     
 if client2.connect("localhost", 1883, 60) != 0:
-    print("No se pudo conectar al broker MQTT")
+    print("Couldn't connect to the mqtt broker")
     exit(1)
 
-client1.subscribe("arduino_1/hello_esp8266")
+client1.subscribe("arduino_1/hello_node1clima")
 client2.subscribe("arduino_2/hello_esp8266")
 
 try:
-    print("Presiona CTRL+C para salir...")
+    print("Press CTRL+C to exit...")
     t1 = threading.Thread(target=loop_1, args=(0,))
     t2 = threading.Thread(target=loop_2, args=(0,))
     
     t1.start()
     t2.start()
     
-    while True:
+    while(apprun):
         try:
             time.sleep(0.5)
             print("data1:" + str(data1))
             print("data2:" + str(data2))
             print("----")
         except KeyboardInterrupt:
-            print("Desconectando")
+            print("Disconnecting")
+            apprun = False
             client1.disconnect()
             client2.disconnect()
             time.sleep(1)
-            break
     
     t1.join()
     t2.join()
     
+    
 except Exception:
-    print("Se detecto una excepción, algo salio mal...")
+    print("Caught an Exception, something went wrong...")
