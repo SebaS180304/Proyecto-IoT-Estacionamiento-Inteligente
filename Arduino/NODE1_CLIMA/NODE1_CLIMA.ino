@@ -9,16 +9,17 @@
 
 #define DHTPIN D7
 #define DHTTYPE DHT11
-#define fanPin D8
+#define fanPin D1
 
 DHT dht(DHTPIN, DHTTYPE);
+float prevTemp = 0;
 
 
 void setup(void){
 	Serial.begin(9600);
   dht.begin();
-  pinMode(fanPin, OUTPUT);
 	SPIFFS.begin();
+  pinMode(fanPin, OUTPUT);
 	ConnectWiFi_STA(false);
 	InitMqtt();
 }
@@ -34,11 +35,15 @@ void loop(){
     delay(1000);
     return;
   } 
-  int fan = 0;
+  
   if (temperature >= 30){
-    fan = 1;
+    pinMode(fanPin, INPUT);
+    Serial.println("Encendido");
+  } else {
+    pinMode(fanPin, OUTPUT);
+    digitalWrite(fanPin, 0);
+    Serial.println("Apagado");
   }
-  digitalWrite(fanPin, fan);
   Serial.print("Humedad: ");
   Serial.print(humidity);
   Serial.print(" %\t");
@@ -46,7 +51,8 @@ void loop(){
   Serial.print(temperature);
   Serial.println(" °C\t");
   //--------------------------------------------------------------------------------------
-	PublisMqtt(temperature);
+  if(prevTemp != temperature && temperature >= 30){ PublisMqtt(temperature); }
+  prevTemp = temperature;
 	delay(1000);
 }
 
