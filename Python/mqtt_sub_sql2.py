@@ -9,13 +9,13 @@ import mysql.connector
 from mysql.connector import errorcode
 
 # Replace these variables with your MySQL server's credentials
-host = "Localhost"
+host = "localhost"
 user = "root"
-password = "A01612974"
+password = "Rosas05!"
 
 # Database and table names
 database_name = "ParkingLot"
-table_name = "estacionamiento"
+table_name = "cajon"
 
 # Setup the MySQL database and table
 try:
@@ -72,11 +72,22 @@ def insert_into_db(data):
             database=database_name
         )
         cursor = cnx.cursor()
+        
+        if int(data) > 15:
+            estado = 'verde'
+        elif int(data) > 5:
+            estado = 'amarillo'
+        else:
+            estado = 'rojo'
 
         # Insert the received payload into the table
-        insertion_query = f"INSERT INTO {table_name} (Temperatura) VALUES ({data})"
+        insertion_query = (
+            f"INSERT INTO {table_name} (Distancia, Estado, Hora) "
+            f"VALUES ({data}, '{estado}', NOW())"
+        )
         cursor.execute(insertion_query)
         cnx.commit()
+            
         print(f"Inserted value {data} into table '{table_name}'.")
 
     except mysql.connector.Error as err:
@@ -127,7 +138,7 @@ if client2.connect("localhost", 1883, 60) != 0:
     print("Couldn't connect to the mqtt broker")
     exit(1)
 
-client1.subscribe("arduino_1/hello_node1clima")
+client1.subscribe("arduino_1/hello_node4dist1")
 client2.subscribe("arduino_2/hello_esp8266")
 
 try:
@@ -157,3 +168,4 @@ try:
     
 except Exception:
     print("Caught an Exception, something went wrong...")
+
