@@ -6,15 +6,14 @@
 #include "ESP8266_Utils.hpp"
 #include "ESP8266_Utils_MQTT.hpp"
 
-#define PhotoR A0
-#define LED D1
-int valorLDR = 0;
-int umbralNum = 1000;
+#define LED D7
+#define pirPin D0
 
 
 void setup(void){
 	Serial.begin(9600);
   pinMode(LED, OUTPUT);
+  pinMode(pirPin, INPUT);
 	SPIFFS.begin();
 	ConnectWiFi_STA(false);
 	InitMqtt();
@@ -24,13 +23,15 @@ void setup(void){
 void loop(){
 	HandleMqtt();
   //--------------------------------------------------------------------------------------
-  if (valorLDR = analogRead(PhotoR) >= umbralNum){
-    digitalWrite(LED, HIGH);
+  int motion = digitalRead(pirPin);
+  if (motion == HIGH){
+    Serial.println("Peaton detectado!!!");
   } else {
-    digitalWrite(LED, LOW);
+    Serial.println("No se detecta movimiento");
   }
+  digitalWrite(LED, motion);
   //--------------------------------------------------------------------------------------
-	PublisMqtt(valorLDR);
+	if (motion == HIGH){ PublisMqtt(motion); }
 	delay(1000);
 }
 
