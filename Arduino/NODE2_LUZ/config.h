@@ -1,8 +1,8 @@
-const char* ssid     = "Tec-IoT";
-const char* password = "spotless.magnetic.bridge";
+const char* ssid     = "iPhone de Sebastian";
+const char* password = "A01612974";
 
 const char* hostname = "ESP8266_1";
 
-IPAddress ip(10, 22, 218, 221);
-IPAddress gateway(10, 22, 208, 1);
-IPAddress subnet(255, 255, 240, 0);
+IPAddress ip(172, 20, 10, 2);
+IPAddress gateway(172, 20, 10, 1);
+IPAddress subnet(255, 255, 255, 240);
