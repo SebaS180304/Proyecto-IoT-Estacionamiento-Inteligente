@@ -11,7 +11,7 @@
 #define GLED D1
 #define BLED D2
 
-int maxValue = 32;
+int maxValue = 55;
 int minValue = 13;
 
 void setup(void){
@@ -30,6 +30,7 @@ void loop(){
   //--------------------------------------------------------------------------------------
   int value = analogRead(PhotoR);
   if (value < minValue){ value = 13; }
+  if (value > maxValue){ value = 55;}
   Serial.print("Luz disponible: ");
   Serial.println(value);
   int light = map(value, minValue, maxValue, 255, 0);

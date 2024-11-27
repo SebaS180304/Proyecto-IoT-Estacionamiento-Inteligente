@@ -40,10 +40,8 @@ void loop(){
   int red = 0;
   int yellow = 0;
   int green = 0;
-  if (distance > 15){
+  if (distance > 7){
     green = 1;
-  } else if (distance > 5){
-    yellow = 1;
   } else {
     red = 1;
   }

@@ -1,5 +1,5 @@
 
-const char* MQTT_BROKER_ADRESS = "172.20.10.2";
+const char* MQTT_BROKER_ADRESS = "10.22.212.188";
 const uint16_t MQTT_PORT = 1883;
 const char* MQTT_CLIENT_NAME = "NODE5_DIST2";
 
@@ -8,7 +8,7 @@ PubSubClient mqttClient(espClient);
 
 void SuscribeMqtt()
 {
-	mqttClient.subscribe("arduino_1/hello_esp8266");
+	mqttClient.subscribe("arduino_1/hello_node5dist2");
 }
 
 String payload;

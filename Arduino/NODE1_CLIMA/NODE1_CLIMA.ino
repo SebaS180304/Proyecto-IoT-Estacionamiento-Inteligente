@@ -36,7 +36,7 @@ void loop(){
     return;
   } 
   
-  if (temperature >= 30){
+  if (temperature >= 27){
     pinMode(fanPin, INPUT);
     Serial.println("Encendido");
   } else {
@@ -51,7 +51,8 @@ void loop(){
   Serial.print(temperature);
   Serial.println(" °C\t");
   //--------------------------------------------------------------------------------------
-  if(prevTemp != temperature && temperature >= 30){ PublisMqtt(temperature); }
+  //if(prevTemp != temperature && temperature >= 30){ PublisMqtt(temperature); }
+  PublisMqtt(temperature);
   prevTemp = temperature;
 	delay(1000);
 }

@@ -2,22 +2,20 @@ import sys
 import threading
 import paho.mqtt.client as paho
 import time
-import signal
-
-
 import mysql.connector
 from mysql.connector import errorcode
 
-# Replace these variables with your MySQL server's credentials
+# Credenciales de MySQL
 host = "localhost"
 user = "root"
 password = "Rosas05!"
 
-# Database and table names
+# Nombre de la base de datos y las tablas
 database_name = "ParkingLot"
-table_name = "cajon"
+table_name1 = "cajon"
+table_name2 = "estacionamiento"
 
-# Setup the MySQL database and table
+# Configuración inicial de MySQL
 try:
     cnx = mysql.connector.connect(
         host=host,
@@ -26,51 +24,60 @@ try:
     )
     cursor = cnx.cursor()
 
-    # Create the database if it doesn't exist
+    # Crear la base de datos si no existe
     try:
         cursor.execute(f"CREATE DATABASE {database_name}")
-        print(f"Database '{database_name}' created successfully.")
+        print(f"Base de datos '{database_name}' creada.")
     except mysql.connector.Error as err:
         if err.errno == errorcode.ER_DB_CREATE_EXISTS:
-            print(f"Database '{database_name}' already exists.")
+            print(f"La base de datos '{database_name}' ya existe.")
         else:
             print(err.msg)
 
-    # Connect to the newly created or existing database
+    # Conectar a la base de datos
     cnx.database = database_name
 
-    # Create the table if it doesn't exist
-    table_creation_query = (
-        f"CREATE TABLE IF NOT EXISTS {table_name} ("
+    # Crear las tablas si no existen
+    table_cajon_query = (
+        f"CREATE TABLE IF NOT EXISTS {table_name1} ("
         "id INT AUTO_INCREMENT PRIMARY KEY, "
-        "value INT NOT NULL)"
+        "DistanciaH INT NOT NULL, "
+        "DistanciaL INT NOT NULL, "
+        "timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP)"
     )
-    cursor.execute(table_creation_query)
-    print(f"Table '{table_name}' is ready.")
+    table_estacionamiento_query = (
+        f"CREATE TABLE IF NOT EXISTS {table_name2} ("
+        "id INT AUTO_INCREMENT PRIMARY KEY, "
+        "Temperatura INT NOT NULL, "
+        "Iluminacion INT NOT NULL, "
+        "Movimiento INT NOT NULL, "
+        "timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP)"
+    )
+    cursor.execute(table_cajon_query)
+    cursor.execute(table_estacionamiento_query)
+    print(f"Tablas '{table_name1}' y '{table_name2}' creadas o ya existen.")
 
 except mysql.connector.Error as err:
-    print(f"Error: {err}")
+    print(f"Error en la configuración inicial de MySQL: {err}")
+    sys.exit(1)
 finally:
     cursor.close()
     cnx.close()
-    
+
+# Clientes MQTT
 client1 = paho.Client()
 client2 = paho.Client()
 client3 = paho.Client()
 client4 = paho.Client()
 client5 = paho.Client()
 
-data1 = None
-data2 = None
-data3 = None
-data4 = None
-data5 = None
+# Diccionarios para almacenar datos
+estacionamiento_data = {"Temperatura": None, "Iluminacion": None, "Movimiento": None}
+cajon_data = {"DistanciaH": None, "DistanciaL": None}
 
-apprun = True
-
-def insert_into_db(data):
+def insert_data(table_name, data):
+    """Inserta datos en la base de datos."""
     try:
-        # Connect to the MySQL server
         cnx = mysql.connector.connect(
             host=host,
             user=user,
@@ -79,212 +86,88 @@ def insert_into_db(data):
         )
         cursor = cnx.cursor()
 
-        # Insert the received payload into the table
-        insertion_query = f"INSERT INTO {table_name} (value) VALUES ({data})"
-        cursor.execute(insertion_query)
+        if table_name == table_name1:  # Tabla cajon
+            query = f"INSERT INTO {table_name} (DistanciaH, DistanciaL) VALUES (%s, %s)"
+            cursor.execute(query, (data["DistanciaH"], data["DistanciaL"]))
+        elif table_name == table_name2:  # Tabla estacionamiento
+            query = f"INSERT INTO {table_name} (Temperatura, Iluminacion, Movimiento) VALUES (%s, %s, %s)"
+            cursor.execute(query, (data["Temperatura"], data["Iluminacion"], data["Movimiento"]))
+
         cnx.commit()
-        print(f"Inserted value {data} into table '{table_name}'.")
-
+        print(f"Datos insertados en {table_name}: {data}")
     except mysql.connector.Error as err:
-        print(f"Database Error: {err}")
-    finally:
-        cursor.close()
-        cnx.close()
-        
-
-def insert_into_db_distanciaH(data):
-    try:
-        # Connect to the MySQL server
-        cnx = mysql.connector.connect(
-            host=host,
-            user=user,
-            password=password,
-            database=database_name
-        )
-        cursor = cnx.cursor()
-        
-        if int(data) > 15:
-            estado = 'verde'
-        elif int(data) > 5:
-            estado = 'amarillo'
-        else:
-            estado = 'rojo'
-
-        # Insert the received payload into the table
-        insertion_query = (
-            f"INSERT INTO {table_name} (DistanciaH, Estado, Hora) "
-            f"VALUES ({data}, '{estado}', NOW())"
-        )
-        cursor.execute(insertion_query)
-        cnx.commit()
-            
-        print(f"Inserted value {data} into table '{table_name}'.")
-
-    except mysql.connector.Error as err:
-        print(f"Database Error: {err}")
+        print(f"Error al insertar datos: {err}")
     finally:
         cursor.close()
         cnx.close()
 
-def insert_into_db_distanciaL(data):
-    try:
-        # Connect to the MySQL server
-        cnx = mysql.connector.connect(
-            host=host,
-            user=user,
-            password=password,
-            database=database_name
-        )
-        cursor = cnx.cursor()
-        
-        if int(data) > 15:
-            estado = 'verde'
-        elif int(data) > 5:
-            estado = 'amarillo'
-        else:
-            estado = 'rojo'
-
-        # Insert the received payload into the table
-        insertion_query = (
-            f"INSERT INTO {table_name} (DistanciaL, Estado, Hora) "
-            f"VALUES ({data}, '{estado}', NOW())"
-        )
-        cursor.execute(insertion_query)
-        cnx.commit()
-            
-        print(f"Inserted value {data} into table '{table_name}'.")
-
-    except mysql.connector.Error as err:
-        print(f"Database Error: {err}")
-    finally:
-        cursor.close()
-        cnx.close()
-        
 def message_handling_1(client, userdata, msg):
-    global data1
-    data1 = msg.payload.decode()
-    insert_into_db(data1)
-    #print(f"{msg.topic}: {data2}")
-    
+    estacionamiento_data["Temperatura"] = int(msg.payload.decode())
+    if all(estacionamiento_data.values()):
+        insert_data(table_name2, estacionamiento_data)
+        for key in estacionamiento_data:
+            estacionamiento_data[key] = None
+
 def message_handling_2(client, userdata, msg):
-    global data2
-    data2 = msg.payload.decode()
-    insert_into_db(data2)
-    #print(f"{msg.topic}: {data2}")
-    
+    estacionamiento_data["Iluminacion"] = int(msg.payload.decode())
+    if all(estacionamiento_data.values()):
+        insert_data(table_name2, estacionamiento_data)
+        for key in estacionamiento_data:
+            estacionamiento_data[key] = None
+
 def message_handling_3(client, userdata, msg):
-    global data3
-    data3 = msg.payload.decode()
-    insert_into_db(data3)
-    #print(f"{msg.topic}: {data2}")
+    estacionamiento_data["Movimiento"] = int(msg.payload.decode())
+    if all(estacionamiento_data.values()):
+        insert_data(table_name2, estacionamiento_data)
+        for key in estacionamiento_data:
+            estacionamiento_data[key] = None
 
 def message_handling_4(client, userdata, msg):
-    global data4
-    data4 = msg.payload.decode()
-    insert_into_db_distanciaH(data4)
-    #print(f"{msg.topic}: {data1}")
-    
+    cajon_data["DistanciaH"] = int(msg.payload.decode())
+    if all(cajon_data.values()):
+        insert_data(table_name1, cajon_data)
+        for key in cajon_data:
+            cajon_data[key] = None
+
 def message_handling_5(client, userdata, msg):
-    global data5
-    data5 = msg.payload.decode()
-    insert_into_db_distanciaL(data4)
-    #print(f"{msg.topic}: {data1}")
+    cajon_data["DistanciaL"] = int(msg.payload.decode())
+    if all(cajon_data.values()):
+        insert_data(table_name1, cajon_data)
+        for key in cajon_data:
+            cajon_data[key] = None
 
-
-def loop_1(num):
-    global client1
-    client1.loop_forever()
-
-def loop_2(num):
-    global client2
-    client2.loop_forever()
-
-def loop_3(num):
-    global client3
-    client3.loop_forever()
-
-def loop_4(num):
-    global client4
-    client4.loop_forever()
-    
-def loop_5(num):
-    global client5
-    client5.loop_forever()
-        
+# Asignar callbacks a los clientes
 client1.on_message = message_handling_1
 client2.on_message = message_handling_2
 client3.on_message = message_handling_3
 client4.on_message = message_handling_4
 client5.on_message = message_handling_5
 
-def signal_handler(sig, frame):
-    global client1
-    global client2
-    global client3
-    global client4
-    global client5
-    print('You pressed Ctrl+C!')
-    client1.disconnect()
-    client2.disconnect()
-    client3.disconnect()
-    client4.disconnect()
-    client5.disconnect()
-    print("Quit")
-    exit(0)
+if __name__ == "__main__":
+    try:
+        print("Presiona CTRL+C para salir...")
 
-signal.signal(signal.SIGINT, signal_handler)
+        # Conectar los clientes MQTT
+        for client in [client1, client2, client3, client4, client5]:
+            client.connect("localhost", 1883, 60)
 
-if client1.connect("localhost", 1883, 60) != 0:
-    print("Couldn't connect sensor de clima to the mqtt broker")
-    exit(1)
-    
-if client2.connect("localhost", 1883, 60) != 0:
-    print("Couldn't connect sensor de luz to the mqtt broker")
-    exit(1)
-    
-if client3.connect("localhost", 1883, 60) != 0:
-    print("Couldn't connect sensor de movimiento to the mqtt broker")
-    exit(1)
-    
-if client4.connect("localhost", 1883, 60) != 0:
-    print("Couldn't connect sensor distancia horizontal to the mqtt broker")
-    exit(1)
+        # Suscribirse a los temas
+        client1.subscribe("arduino_1/hello_node1clima")
+        client2.subscribe("arduino_1/hello_node2luz")
+        client3.subscribe("arduino_1/hello_node3peaton")
+        client4.subscribe("arduino_1/hello_node4dist1")
+        client5.subscribe("arduino_1/hello_node5dist2")
 
-if client5.connect("localhost", 1883, 60) != 0:
-    print("Couldn't connect sensor distancia lateral to the mqtt broker")
-    exit(1)
+        # Ejecutar los clientes en hilos
+        threads = [threading.Thread(target=client.loop_forever) for client in [client1, client2, client3, client4, client5]]
+        for thread in threads:
+            thread.start()
 
-client1.subscribe("arduino_1/hello_node1clima")
-client2.subscribe("arduino_1/hello_node2luz")
-client3.subscribe("arduino_1/hello_node3peaton")
-client4.subscribe("arduino_1/hello_node4dist1")
-client5.subscribe("arduino_1/hello_esp8266")
-
-try:
-    print("Press CTRL+C to exit...")
-    t1 = threading.Thread(target=loop_1, args=(0,))
-    t2 = threading.Thread(target=loop_2, args=(0,))
-    
-    t1.start()
-    t2.start()
-    
-    while(apprun):
-        try:
+        while True:
             time.sleep(0.5)
-            print("data1:" + str(data1))
-            print("data2:" + str(data2))
-            print("----")
-        except KeyboardInterrupt:
-            print("Disconnecting")
-            apprun = False
-            client1.disconnect()
-            client2.disconnect()
-            time.sleep(1)
-    
-    t1.join()
-    t2.join()
-    
-    
-except Exception:
-    print("Caught an Exception, something went wrong...")
 
+    except KeyboardInterrupt:
+        print("Desconectando...")
+        for client in [client1, client2, client3, client4, client5]:
+            client.disconnect()
+        print("Programa terminado.")
