@@ -6,9 +6,8 @@
 #include "ESP8266_Utils.hpp"
 #include "ESP8266_Utils_MQTT.hpp"
 
-#define LEDV D7
-#define LEDY D6
-#define LEDR D5
+#define LEDV D3
+#define LEDY D2
 #define pirPin D0
 
 
@@ -16,7 +15,6 @@ void setup(void){
 	Serial.begin(9600);
   pinMode(LEDV, OUTPUT);
   pinMode(LEDY, OUTPUT);
-  pinMode(LEDR, OUTPUT);
   pinMode(pirPin, INPUT);
 	SPIFFS.begin();
 	ConnectWiFi_STA(false);
@@ -25,33 +23,22 @@ void setup(void){
 
 
 unsigned long lastMotionTime = 0;
-bool motionDetected = false;
 
 void loop(){
   HandleMqtt();
   
   int motion = digitalRead(pirPin);
   
-  if (motion == HIGH && !motionDetected) {
+  if (motion == HIGH) {
     Serial.println("Peaton detectado!!!");
     digitalWrite(LEDV, LOW);
     digitalWrite(LEDY, HIGH);
     lastMotionTime = millis();  // Store the time motion was detected
-    motionDetected = true;  // Prevent repeat detection until reset
   }
-  
-  if (motionDetected) {
-    if (millis() - lastMotionTime > 3000 && millis() - lastMotionTime <= 8000) {
-      digitalWrite(LEDY, LOW);
-      digitalWrite(LEDR, HIGH);
-    }
-    if (millis() - lastMotionTime > 8000) {
-      digitalWrite(LEDR, LOW);
-      motionDetected = false;  // Reset motion state after the cycle
-    }
-  } else {
+  else {
     Serial.println("No se detecta movimiento");
     digitalWrite(LEDV, HIGH);
+    digitalWrite(LEDY, LOW);
   }
   
   //if (motion == HIGH) { 

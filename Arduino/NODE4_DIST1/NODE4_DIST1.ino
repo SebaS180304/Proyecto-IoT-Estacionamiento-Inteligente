@@ -51,11 +51,8 @@ void loop(){
   digitalWrite(rLED, red);
   digitalWrite(yLED, yellow);
   digitalWrite(gLED, green);
-  if (distance != prevDistance){
-    PublisMqtt(distance);
-  }
+  PublisMqtt(distance);
   //--------------------------------------------------------------------------------------
-	prevDistance = distance;
 	delay(1000);
 }
 

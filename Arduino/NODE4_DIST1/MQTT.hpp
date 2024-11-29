@@ -1,5 +1,5 @@
 
-const char* MQTT_BROKER_ADRESS = "10.22.212.188";
+const char* MQTT_BROKER_ADRESS = "10.22.209.21";
 const uint16_t MQTT_PORT = 1883;
 const char* MQTT_CLIENT_NAME = "NODE4_DIST1";
 

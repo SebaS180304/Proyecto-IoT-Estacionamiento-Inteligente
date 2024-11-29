@@ -100,6 +100,40 @@ def insert_data(table_name, data):
     finally:
         cursor.close()
         cnx.close()
+        
+def insert_or_update_cajon_data():
+    """Inserta o actualiza los datos relacionados con la tabla 'cajon', incluyendo el estado."""
+    if cajon_data["DistanciaH"] is not None and cajon_data["DistanciaL"] is not None:
+        try:
+            # Calcular estado
+            estado = "No disponible" if cajon_data["DistanciaH"] < 7 else "Disponible"
+
+            # Conectar a la base de datos
+            cnx = mysql.connector.connect(
+                host=host,
+                user=user,
+                password=password,
+                database=database_name
+            )
+            cursor = cnx.cursor()
+
+            # Insertar datos con estado
+            query = f"""
+                INSERT INTO {table_name1} (DistanciaH, DistanciaL, estado)
+                VALUES (%s, %s, %s)
+            """
+            cursor.execute(query, (cajon_data["DistanciaH"], cajon_data["DistanciaL"], estado))
+            cnx.commit()
+            print(f"Datos insertados en '{table_name1}': {cajon_data}, estado: {estado}")
+        except mysql.connector.Error as err:
+            print(f"Error al insertar datos en 'cajon': {err}")
+        finally:
+            cursor.close()
+            cnx.close()
+
+        # Limpiar el diccionario después de insertar
+        for key in cajon_data:
+            cajon_data[key] = None
 
 def message_handling_1(client, userdata, msg):
     estacionamiento_data["Temperatura"] = int(msg.payload.decode())
@@ -124,17 +158,11 @@ def message_handling_3(client, userdata, msg):
 
 def message_handling_4(client, userdata, msg):
     cajon_data["DistanciaH"] = int(msg.payload.decode())
-    if all(cajon_data.values()):
-        insert_data(table_name1, cajon_data)
-        for key in cajon_data:
-            cajon_data[key] = None
+    insert_or_update_cajon_data()
 
 def message_handling_5(client, userdata, msg):
     cajon_data["DistanciaL"] = int(msg.payload.decode())
-    if all(cajon_data.values()):
-        insert_data(table_name1, cajon_data)
-        for key in cajon_data:
-            cajon_data[key] = None
+    insert_or_update_cajon_data()
 
 # Asignar callbacks a los clientes
 client1.on_message = message_handling_1
